@@ -1577,6 +1577,13 @@ function buildSim() {
 }
 function renderSimIntro() {
   const { plan } = buildSim(), total = plan.reduce((s, a) => s + a.got, 0);
+  // cuántas preguntas hay de verdad en el banco (según el origen elegido), por área y por subárea
+  const base = bank.filter(q => deOrigen(q, simOrigen));
+  plan.forEach(a => {
+    const delArea = base.filter(q => q.especialidad === a.esp);
+    a.have = delArea.length;
+    a.subs.forEach(s => s.have = delArea.filter(q => norm(subOf(q)) === norm(s.sub)).length);
+  });
   document.body.classList.add("in-quiz");
   $("#home").hidden = true; $("#quiz").hidden = false;
   $("#quiz").innerHTML = `
@@ -1594,12 +1601,12 @@ function renderSimIntro() {
   </div>
   <div class="card">
     <h2>Distribución oficial por área</h2>
-    <p class="muted" style="margin-top:-6px">Toca un área para ver sus temas. Entre paréntesis, cuántas preguntas hay hoy en el banco.</p>
+    <p class="muted" style="margin-top:-6px">Toca un área para ver sus temas. Primero, cuántas preguntas trae el ENAM; luego, cuántas hay en el banco para elegir.</p>
     ${plan.map(a => `<details class="qrow sim-area">
-      <summary><span class="grow"><span class="esp-row" style="padding:0"><span><b>${esc(a.esp)}</b></span><span class="n">${a.need} preg. <span class="${a.got < a.need ? "lack" : "full"}">(${a.got})</span></span>
-        <span class="bar"><span style="display:block;height:100%;width:${pct(a.got, a.need)}%;background:var(--brand);border-radius:99px"></span></span></span></span>${ico("chev", "chev")}</summary>
+      <summary><span class="grow"><span class="esp-row" style="padding:0"><span><b>${esc(a.esp)}</b></span><span class="n">${a.need} en el ENAM · <span class="${a.have < a.need ? "lack" : "full"}">${a.have} en el banco</span></span>
+        <span class="bar"><span style="display:block;height:100%;width:${pct(Math.min(a.have, a.need), a.need)}%;background:var(--brand);border-radius:99px"></span></span></span></span>${ico("chev", "chev")}</summary>
       <div class="qbody"><table class="sim-table"><tr><th>Tema (subárea)</th><th class="n">ENAM</th><th class="n">En banco</th></tr>
-        ${a.subs.map(s => `<tr><td>${esc(s.sub)}</td><td class="n">${s.n}</td><td class="n ${s.got < s.n ? "lack" : "full"}">${s.got}</td></tr>`).join("")}</table></div>
+        ${a.subs.map(s => `<tr><td>${esc(s.sub)}</td><td class="n">${s.n}</td><td class="n ${s.have < s.n ? "lack" : "full"}">${s.have}</td></tr>`).join("")}</table></div>
     </details>`).join("")}
     <p class="muted" style="margin-bottom:0">Fuente: <a href="${ENAM_FUENTE}" target="_blank" rel="noopener">Tabla de especificaciones del ENAM, ASPEFAM</a>.</p>
   </div>`;
