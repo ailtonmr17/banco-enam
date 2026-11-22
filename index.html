@@ -1637,11 +1637,13 @@ function exitQuiz() {
   $("#quiz").hidden = true; $("#quiz").innerHTML = ""; $("#home").hidden = false;
   renderHome(); window.scrollTo(0, 0);
 }
-function tagsHTML(q) {
-  return `<div class="tags"><span class="tag esp">${esc(q.especialidad)}</span>` + (q.tema ? `<span class="tag">${esc(q.tema)}</span>` : "") +
+// modo: "banco" (lista del banco: todo), "prueba" (especialidad + fuente), "sim" (solo la fuente, como en el ENAM real)
+function tagsHTML(q, modo = "banco") {
+  return `<div class="tags">` + (modo !== "sim" ? `<span class="tag esp">${esc(q.especialidad)}</span>` : "") +
+    (modo === "banco" && q.tema ? `<span class="tag">${esc(q.tema)}</span>` : "") +
     (q.fuente ? `<span class="tag">${esc(q.fuente)}</span>` : "") +
     (q.marcada ? `<span class="tag star">${ico("star", "fill")}Marcada</span>` : "") +
-    (q.ok + q.fail ? `<span class="tag ${q.ultima ? "ok" : "bad"}">${q.ok} ✓ · ${q.fail} ✗</span>` : "") + `</div>`;
+    (modo !== "sim" && q.ok + q.fail ?`<span class="tag ${q.ultima ? "ok" : "bad"}">${q.ok} ✓ · ${q.fail} ✗</span>` : "") + `</div>`;
 }
 // order: orden en que se mostraron las alternativas (para usar las mismas letras que vio el estudiante)
 function explHTML(q, order = q.opciones.map((_, k) => k)) {
@@ -1679,7 +1681,7 @@ function renderQuiz(focus) {
     <button class="icon-btn" id="qMap" aria-label="Mapa de preguntas" title="Mapa de preguntas">${ico("grid")}</button>
   </div>
   <article class="card">
-    ${tagsHTML(q)}
+    ${tagsHTML(q, S.sim ? "sim" : "prueba")}
     <h2 class="enun" id="qTitle" tabindex="-1">${esc(q.enunciado)}</h2>
     <div class="opts" role="group" aria-labelledby="qTitle">${opts}</div>
     <div aria-live="polite">${reveal ? `
@@ -1838,7 +1840,7 @@ function reviewItem(q, order, sel) {
   return `<details class="qrow">
     <summary>
       <span class="status ${bien ? "ok" : "bad"}" aria-label="${bien ? "Correcta" : sel === null ? "Sin responder" : "Incorrecta"}">${ico(bien ? "check" : "x")}</span>
-      <span class="grow">${tagsHTML(q)}<span class="qtext">${esc(q.enunciado)}</span></span>
+      <span class="grow">${tagsHTML(q, "prueba")}<span class="qtext">${esc(q.enunciado)}</span></span>
       ${ico("chev", "chev")}
     </summary>
     <div class="qbody">
