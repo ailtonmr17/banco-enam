@@ -1,0 +1,4 @@
+# Solo se publica la pagina
+*
+!index.html
+!.gitignore
