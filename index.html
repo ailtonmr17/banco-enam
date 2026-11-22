@@ -319,6 +319,7 @@ dialog.dlg::backdrop{background:rgba(8,12,16,.6)}
   <section id="v-banco" aria-label="Banco de preguntas" hidden>
     <div class="card">
       <div class="field search"><label class="sr-only" for="bSearch">Buscar</label><span data-ico="search"></span><input type="search" id="bSearch" placeholder="Buscar en el banco…"></div>
+      <div class="field"><label class="flabel" for="bOrigen">Origen</label><select id="bOrigen"></select></div>
       <div class="grid2">
         <div class="field"><label class="flabel" for="bEsp">Especialidad</label><select id="bEsp"></select></div>
         <div class="field"><label class="flabel" for="bEstado">Estado</label>
@@ -1898,12 +1899,22 @@ document.addEventListener("keydown", e => {
 
 /* ======================= BANCO ======================= */
 let bLimit = 40;
+const examenDe = q => q.fuente.replace(/\s*·\s*P\d+\s*$/, "");
+const origenOk = (q, v) => v.startsWith("ex:") ? q.oficial && examenDe(q) === v.slice(3) : deOrigen(q, v);
 function renderBank() {
   const sel = $("#bEsp"), prev = sel.value || "*";
   sel.innerHTML = `<option value="*">Todas</option>` + especialidades().map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join("");
   sel.value = [...sel.options].some(o => o.value === prev) ? prev : "*";
-  const t = $("#bSearch").value.trim().toLowerCase(), esp = sel.value, est = $("#bEstado").value;
-  const list = bank.filter(q => (esp === "*" || q.especialidad === esp)
+  const oSel = $("#bOrigen"), oPrev = oSel.value || "*";
+  const examenes = [...new Set(bank.filter(q => q.oficial).map(examenDe))]
+    .sort((a, b) => (b.match(/\d{4}/) || [0])[0] - (a.match(/\d{4}/) || [0])[0] || a.localeCompare(b, "es"));
+  const cuenta = v => bank.filter(q => origenOk(q, v)).length;
+  oSel.innerHTML = [["*", "Todas"], ["oficial", "Todos los ENAM pasados"]].map(([v, l]) => `<option value="${v}">${l} (${cuenta(v)})</option>`).join("")
+    + `<optgroup label="Por examen">${examenes.map(e => `<option value="ex:${esc(e)}">${esc(e)} (${cuenta("ex:" + e)})</option>`).join("")}</optgroup>`
+    + `<option value="tipo">Tipo ENAM (${cuenta("tipo")})</option>`;
+  oSel.value = [...oSel.options].some(o => o.value === oPrev) ? oPrev : "*";
+  const t = $("#bSearch").value.trim().toLowerCase(), esp = sel.value, est = $("#bEstado").value, ori = oSel.value;
+  const list = bank.filter(q => origenOk(q, ori) && (esp === "*" || q.especialidad === esp)
     && (est === "todas" || (est === "nuevas" && q.ok + q.fail === 0) || (est === "falladas" && q.ultima === false) || (est === "marcadas" && q.marcada))
     && (!t || [q.enunciado, q.tema, q.fuente, q.clave, q.explicacion, ...q.opciones].join(" ").toLowerCase().includes(t)));
   $("#bInfo").textContent = bank.length ? `${list.length} de ${bank.length}` : "";
@@ -1926,7 +1937,7 @@ function renderBank() {
     (list.length > bLimit ? `<div class="row" style="justify-content:center;margin-top:var(--s3)"><button class="btn ghost" id="bMore">Ver ${list.length - bLimit} más</button></div>` : "");
   const m = $("#bMore"); if (m) m.onclick = () => { bLimit += 40; renderBank(); };
 }
-["#bSearch", "#bEsp", "#bEstado"].forEach(s => $(s).addEventListener("input", () => { bLimit = 40; renderBank(); }));
+["#bSearch", "#bOrigen", "#bEsp", "#bEstado"].forEach(s => $(s).addEventListener("input", () => { bLimit = 40; renderBank(); }));
 $("#bList").onclick = e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const row = b.closest(".qrow"), id = row.dataset.id, q = byId(id);
